@@ -816,6 +816,19 @@ wheels = [
 ]
 
 [[package]]
+name = "langchain-deepseek"
+version = "0.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-core" },
+    { name = "langchain-openai" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ed/7f/be5bcf99b3814214a02ac205bda66d49d55a7d5440d47223105cef5df063/langchain_deepseek-0.1.3.tar.gz", hash = "sha256:89dd6aa120fb50dcfcd3d593626d34c1c40deefe4510710d0807fcc19481adf5", size = 7860 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/7d/51b60aa91fa77742fc461704e5a8497e856156ae878102e6942799a78915/langchain_deepseek-0.1.3-py3-none-any.whl", hash = "sha256:8588e826371b417fca65c02f4273b4061eb9815a7bfcd5eb05acaa40d603aa89", size = 7123 },
+]
+
+[[package]]
 name = "langchain-openai"
 version = "0.3.25"
 source = { registry = "https://pypi.org/simple" }
@@ -2336,24 +2349,23 @@ wheels = [
 [[package]]
 name = "tailortalk"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "google-api-python-client" },
     { name = "google-auth-httplib2" },
     { name = "google-auth-oauthlib" },
     { name = "langchain" },
-    { name = "langchain-openai" },
+    { name = "langchain-core" },
+    { name = "langchain-deepseek" },
     { name = "langgraph" },
     { name = "pydantic" },
-    { name = "python-dateutil" },
     { name = "python-multipart" },
-    { name = "requests" },
     { name = "streamlit" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
-[package.dev-dependencies]
+[package.optional-dependencies]
 dev = [
     { name = "black" },
     { name = "pytest" },
@@ -2362,27 +2374,23 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
     { name = "fastapi", specifier = ">=0.104.0" },
-    { name = "google-api-python-client", specifier = ">=2.108.0" },
-    { name = "google-auth-httplib2", specifier = ">=0.1.1" },
-    { name = "google-auth-oauthlib", specifier = ">=1.1.0" },
-    { name = "langchain", specifier = ">=0.1.0" },
-    { name = "langchain-openai", specifier = ">=0.0.5" },
-    { name = "langgraph", specifier = ">=0.0.40" },
+    { name = "google-api-python-client", specifier = ">=2.140.0" },
+    { name = "google-auth-httplib2", specifier = ">=0.2.0" },
+    { name = "google-auth-oauthlib", specifier = ">=1.2.0" },
+    { name = "langchain", specifier = ">=0.3.0" },
+    { name = "langchain-core", specifier = ">=0.3.0" },
+    { name = "langchain-deepseek", specifier = ">=0.1.0" },
+    { name = "langgraph", specifier = ">=0.2.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
-    { name = "python-dateutil", specifier = ">=2.8.2" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
-    { name = "requests", specifier = ">=2.31.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "streamlit", specifier = ">=1.28.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
 ]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "black", specifier = ">=23.0.0" },
-    { name = "pytest", specifier = ">=7.4.0" },
-    { name = "ruff", specifier = ">=0.1.0" },
-]
+provides-extras = ["dev"]
 
 [[package]]
 name = "tenacity"
