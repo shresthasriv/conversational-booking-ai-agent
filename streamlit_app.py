@@ -102,6 +102,17 @@ def main():
     st.title("📅 TailorTalk Calendar Booking Agent")
     st.markdown("### AI-powered appointment scheduling with natural language")
 
+    # Debug secrets
+    st.write("**Debug Info:**")
+    try:
+        st.write("Available secrets:", list(st.secrets.keys()) if hasattr(st, 'secrets') else "No secrets")
+        st.write("DEEPSEEK_API_KEY from secrets:", st.secrets.get("DEEPSEEK_API_KEY", "Not found") if hasattr(st, 'secrets') else "No secrets")
+        st.write("Settings DEEPSEEK_API_KEY:", settings.DEEPSEEK_API_KEY)
+        st.write("Settings GOOGLE_CREDENTIALS_FILE:", settings.GOOGLE_CREDENTIALS_FILE)
+        st.write("File exists:", os.path.exists(settings.GOOGLE_CREDENTIALS_FILE))
+    except Exception as e:
+        st.write("Debug error:", str(e))
+
     missing_settings = settings.validate_required_settings()
     if missing_settings:
         st.error("⚠️ Configuration incomplete!")
