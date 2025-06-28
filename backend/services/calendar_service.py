@@ -35,42 +35,83 @@ class GoogleCalendarService:
 
     def get_calendar_events(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
         try:
+            user_tz = pytz.timezone(settings.TIMEZONE)
+            
+            if start_time.tzinfo is None:
+                start_time_local = user_tz.localize(start_time)
+                end_time_local = user_tz.localize(end_time)
+            else:
+                start_time_local = start_time
+                end_time_local = end_time
+
+            start_time_utc = start_time_local.astimezone(pytz.UTC)
+            end_time_utc = end_time_local.astimezone(pytz.UTC)
+            
+            print(f"API call: searching from {start_time_utc} to {end_time_utc}")
+            
             events_result = self.service.events().list(
                 calendarId="shresthas04.ms@gmail.com",
-                timeMin=start_time.isoformat() + 'Z',
-                timeMax=end_time.isoformat() + 'Z',
+                timeMin=start_time_utc.isoformat(),
+                timeMax=end_time_utc.isoformat(),
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
             
             events = events_result.get('items', [])
+            print(f"API returned {len(events)} events")
             return events
         except Exception as e:
+            print(f"Error in get_calendar_events: {e}")
             return []
 
     def check_availability(self, start_time: datetime, end_time: datetime) -> bool:
+        print(f"Checking availability for: {start_time} to {end_time}")
+
         user_tz = pytz.timezone(settings.TIMEZONE)
         
         if start_time.tzinfo is None:
-            start_time = user_tz.localize(start_time).astimezone(pytz.UTC)
-            end_time = user_tz.localize(end_time).astimezone(pytz.UTC)
+            start_time_local = user_tz.localize(start_time)
+            end_time_local = user_tz.localize(end_time)
         else:
-            start_time = start_time.astimezone(pytz.UTC)
-            end_time = end_time.astimezone(pytz.UTC)
+            start_time_local = start_time.astimezone(user_tz)
+            end_time_local = end_time.astimezone(user_tz)
         
-        events = self.get_calendar_events(start_time, end_time)
+        print(f"Local IST times: {start_time_local} to {end_time_local}")
         
+        events = self.get_calendar_events(start_time_local.replace(tzinfo=None), end_time_local.replace(tzinfo=None))
+        print(f"Found {len(events)} events in time range")
+
         for event in events:
             event_start = event.get('start', {})
             event_end = event.get('end', {})
             
+            print(f"Checking event: {event.get('summary', 'No title')}")
+            print(f"Event start: {event_start}")
+            print(f"Event end: {event_end}")
+            
             if 'dateTime' in event_start and 'dateTime' in event_end:
-                event_start_dt = datetime.fromisoformat(event_start['dateTime'].replace('Z', '+00:00'))
-                event_end_dt = datetime.fromisoformat(event_end['dateTime'].replace('Z', '+00:00'))
+                try:
+                    event_start_str = event_start['dateTime']
+                    event_end_str = event_end['dateTime']
 
-                if (start_time < event_end_dt and end_time > event_start_dt):
-                    return False
+                    event_start_dt = datetime.fromisoformat(event_start_str.replace('Z', '+00:00'))
+                    event_end_dt = datetime.fromisoformat(event_end_str.replace('Z', '+00:00'))
+
+                    event_start_local = event_start_dt.astimezone(user_tz)
+                    event_end_local = event_end_dt.astimezone(user_tz)
+                    
+                    print(f"Event times in IST: {event_start_local} to {event_end_local}")
+                    print(f"Requested times in IST: {start_time_local} to {end_time_local}")
+                    
+                    if (start_time_local < event_end_local and end_time_local > event_start_local):
+                        print(f"CONFLICT DETECTED with event: {event.get('summary', 'No title')}")
+                        return False
+                        
+                except Exception as e:
+                    print(f"Error parsing event times: {e}")
+                    continue
         
+        print("No conflicts found - time slot is available")
         return True
 
     def create_event(self, title: str, start_time: datetime, end_time: datetime, description: str = "") -> str:

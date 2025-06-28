@@ -370,6 +370,32 @@ Should I go ahead and create this event? (Type 'yes' to confirm)"""
             
             start_datetime = self._parse_datetime_with_timezone(date_str, time_str)
             end_datetime = start_datetime + timedelta(minutes=duration)
+
+            is_available = self.calendar_service.check_availability(start_datetime, end_datetime)
+            
+            if not is_available:
+                existing_events = self.calendar_service.get_calendar_events(start_datetime, end_datetime)
+                conflict_info = ""
+                if existing_events:
+                    event = existing_events[0]
+                    event_title = event.get('summary', 'Untitled Event')
+                    conflict_info = f" There's already an event '{event_title}' scheduled at this time."
+                
+                error_text = f"""❌ **Cannot Create Event**
+
+The requested time slot is no longer available.{conflict_info}
+
+📅 **Requested:** {title}
+🗓️ {start_datetime.strftime('%A, %B %d, %Y')}
+🕐 {start_datetime.strftime('%I:%M %p')} - {end_datetime.strftime('%I:%M %p')}
+
+Would you like me to suggest alternative times?"""
+                
+                ai_message = AIMessage(content=error_text)
+                state["messages"].append(ai_message)
+                state["current_step"] = "booking_failed_conflict"
+                state["need_confirmation"] = False
+                return state
             
             event_id = self.calendar_service.create_event(
                 title=title,
