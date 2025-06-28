@@ -18,8 +18,8 @@ class GoogleCalendarService:
     def _authenticate(self):
         try:
             import streamlit as st
-            if hasattr(st, 'secrets') and 'google_service_account' in st.secrets:
-                credentials_info = dict(st.secrets['google_service_account'])
+            if hasattr(st, 'secrets') and 'google_credentials' in st.secrets:
+                credentials_info = dict(st.secrets['google_credentials'])
             else:
                 with open('conversational-booking-agent-3f3e50ef4ec1.json', 'r') as f:
                     credentials_info = json.load(f)
