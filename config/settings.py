@@ -3,26 +3,19 @@ from typing import Optional
 
 class Settings:
     def __init__(self):
-        # Try to get from Streamlit secrets first, then environment variables
         try:
             import streamlit as st
             if hasattr(st, 'secrets'):
                 self.DEEPSEEK_API_KEY = st.secrets.get("DEEPSEEK_API_KEY", os.getenv("DEEPSEEK_API_KEY"))
-                self.GOOGLE_CREDENTIALS_FILE = st.secrets.get("GOOGLE_CREDENTIALS_FILE", os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json"))
-                self.GOOGLE_TOKEN_FILE = st.secrets.get("GOOGLE_TOKEN_FILE", os.getenv("GOOGLE_TOKEN_FILE", "token.json"))
                 self.CALENDAR_ID = st.secrets.get("CALENDAR_ID", os.getenv("CALENDAR_ID", "primary"))
                 self.TIMEZONE = st.secrets.get("TIMEZONE", os.getenv("TIMEZONE", "Asia/Kolkata"))
             else:
                 raise ImportError("No secrets available")
         except (ImportError, Exception):
-            # Fallback to environment variables
             self.DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-            self.GOOGLE_CREDENTIALS_FILE = os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json")
-            self.GOOGLE_TOKEN_FILE = os.getenv("GOOGLE_TOKEN_FILE", "token.json")
             self.CALENDAR_ID = os.getenv("CALENDAR_ID", "primary")
             self.TIMEZONE = os.getenv("TIMEZONE", "Asia/Kolkata")
-        
-        # Static settings
+
         self.API_HOST = os.getenv("API_HOST", "0.0.0.0")
         self.API_PORT = int(os.getenv("API_PORT", "8000"))
         self.FRONTEND_HOST = os.getenv("FRONTEND_HOST", "0.0.0.0")
@@ -47,8 +40,6 @@ class Settings:
         missing = []
         if not self.DEEPSEEK_API_KEY:
             missing.append("DEEPSEEK_API_KEY")
-        if not os.path.exists(self.GOOGLE_CREDENTIALS_FILE):
-            missing.append(f"Google credentials file: {self.GOOGLE_CREDENTIALS_FILE}")
         return missing
 
 settings = Settings() 

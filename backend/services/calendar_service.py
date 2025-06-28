@@ -1,14 +1,12 @@
 import os
-import pickle
+import json
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from typing import List, Dict, Any
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from config.settings import settings
-from backend.models.schemas import TimeSlot, CalendarEvent
+from backend.models.schemas import CalendarEvent
 import pytz
 
 class GoogleCalendarService:
@@ -18,39 +16,27 @@ class GoogleCalendarService:
         self._authenticate()
 
     def _authenticate(self):
-        creds = None
-        
-        if os.path.exists(settings.GOOGLE_TOKEN_FILE):
-            creds = Credentials.from_authorized_user_file(
-                settings.GOOGLE_TOKEN_FILE, 
-                settings.GOOGLE_SCOPES
-            )
-        
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                if not os.path.exists(settings.GOOGLE_CREDENTIALS_FILE):
-                    raise FileNotFoundError(f"Google credentials file not found: {settings.GOOGLE_CREDENTIALS_FILE}")
-                
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    settings.GOOGLE_CREDENTIALS_FILE, 
-                    settings.GOOGLE_SCOPES
-                )
-                creds = flow.run_local_server(port=0)
-            
-            with open(settings.GOOGLE_TOKEN_FILE, 'w') as token:
-                token.write(creds.to_json())
-        
         try:
-            self.service = build('calendar', 'v3', credentials=creds)
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'google_service_account' in st.secrets:
+                credentials_info = dict(st.secrets['google_service_account'])
+            else:
+                with open('conversational-booking-agent-3f3e50ef4ec1.json', 'r') as f:
+                    credentials_info = json.load(f)
+            
+            credentials = service_account.Credentials.from_service_account_info(
+                credentials_info,
+                scopes=settings.GOOGLE_SCOPES
+            )
+            
+            self.service = build('calendar', 'v3', credentials=credentials)
         except Exception as e:
-            raise Exception(f"Failed to build calendar service: {str(e)}")
+            raise Exception(f"Failed to authenticate with service account: {str(e)}")
 
     def get_calendar_events(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
         try:
             events_result = self.service.events().list(
-                calendarId=settings.CALENDAR_ID,
+                calendarId="shresthas04.ms@gmail.com",
                 timeMin=start_time.isoformat() + 'Z',
                 timeMax=end_time.isoformat() + 'Z',
                 singleEvents=True,
@@ -109,14 +95,11 @@ class GoogleCalendarService:
                 },
             }
             
-            print(f"DEBUG: Creating event - Time: {start_iso}, Timezone: {settings.TIMEZONE}")
-            
-            created_event = self.service.events().insert(calendarId='primary', body=event).execute()
+            created_event = self.service.events().insert(calendarId="shresthas04.ms@gmail.com", body=event).execute()
             return created_event.get('id')
             
         except Exception as e:
-            print(f"Error creating event: {e}")
-            raise
+            raise Exception(f"Failed to create calendar event: {str(e)}")
 
     def suggest_time_slots(self, date: datetime, duration_minutes: int = 60, 
                           working_hours: tuple = (9, 17)) -> List[Dict[str, datetime]]:
@@ -146,7 +129,7 @@ class GoogleCalendarService:
         try:
             now = datetime.utcnow().isoformat() + 'Z'
             events_result = self.service.events().list(
-                calendarId=settings.CALENDAR_ID,
+                calendarId="shresthas04.ms@gmail.com",
                 timeMin=now,
                 maxResults=max_results,
                 singleEvents=True,
@@ -175,5 +158,4 @@ class GoogleCalendarService:
             return calendar_events
             
         except HttpError as error:
-            print(f"An error occurred: {error}")
-            return [] 
+            return []
