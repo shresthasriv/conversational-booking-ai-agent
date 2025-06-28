@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from backend.agents.langgraph_calendar_agent import LangGraphCalendarAgent
-    from backend.services.demo_calendar_service import DemoCalendarService
+    from backend.services.calendar_service import GoogleCalendarService
     from config.settings import settings
 except ImportError as e:
     st.error(f"Import error: {e}")
@@ -34,9 +34,30 @@ def get_calendar_agent():
 @st.cache_resource
 def get_calendar_service():
     try:
-        return DemoCalendarService()
+        # For Streamlit Cloud, check for service account credentials in secrets
+        if hasattr(st, 'secrets') and 'google_credentials' in st.secrets:
+            credentials_info = dict(st.secrets['google_credentials'])
+            return GoogleCalendarService(credentials_info=credentials_info)
+        # For local development, try credentials.json file
+        elif os.path.exists('credentials.json'):
+            return GoogleCalendarService()
+        else:
+            st.error("⚠️ **Google Calendar Setup Required**")
+            st.markdown("""
+            **For Streamlit Cloud:**
+            1. Add your Google service account credentials to Streamlit secrets
+            2. Go to your app settings → Secrets
+            3. Add the service account JSON data under `[google_credentials]`
+            
+            **For Local Development:**
+            - Place your `credentials.json` file in the project root
+            - This file should NOT be committed to Git
+            """)
+            return None
     except Exception as e:
-        st.error(f"Failed to initialize demo calendar service: {e}")
+        st.error(f"Failed to initialize Google calendar service: {e}")
+        if "service account" in str(e).lower():
+            st.error("💡 Make sure you've shared your Google Calendar with the service account email!")
         return None
 
 def init_session_state():
@@ -103,8 +124,8 @@ def main():
     st.title("📅 TailorTalk Calendar Booking Agent")
     st.markdown("### AI-powered appointment scheduling with natural language")
     
-    # Demo mode notice
-    st.info("🎭 **Demo Mode**: This app uses a simulated calendar for demonstration purposes. All bookings are simulated.")
+    # Google Calendar integration notice
+    st.info("🔗 **Real Google Calendar Integration**: This app connects to your actual Google Calendar using service account authentication.")
 
     # Initialize services
     calendar_agent = get_calendar_agent()
@@ -127,7 +148,7 @@ def main():
         st.stop()
     
     if not calendar_service:
-        st.error("❌ Demo calendar service failed to initialize.")
+        st.error("❌ Google calendar service failed to initialize.")
         st.stop()
 
     # Main layout
@@ -232,16 +253,16 @@ def main():
         
         **Features:**
         - Natural language understanding
-        - Automatic availability checking
-        - Simulated calendar integration
-        - Smart time suggestions
+        - **Real Google Calendar integration** - creates actual events in your calendar!
+        - Automatic availability checking against your real calendar
+        - Smart time suggestions based on your schedule
         - Conversational booking flow
         
-        **Demo Mode Features:**
-        - Pre-populated realistic calendar events
+        **Google Calendar Integration:**
+        - Service account authentication (no OAuth popup needed)
         - Real-time availability checking
-        - Event creation simulation
-        - No authentication required
+        - Actual event creation in your Google Calendar
+        - Secure server-to-server communication
         """)
 
 if __name__ == "__main__":
