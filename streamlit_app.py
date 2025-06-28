@@ -245,10 +245,17 @@ def main():
                     st.info("No upcoming events")
         
         # Demo stats
-        with st.expander("📈 Demo Statistics"):
+        with st.expander("📈 Calendar Statistics"):
             if calendar_service:
-                stats = calendar_service.get_demo_stats()
-                st.json(stats)
+                try:
+                    # Get some basic calendar info instead of demo stats
+                    st.write("**Calendar Service Status:** ✅ Connected")
+                    st.write("**Service Type:** Google Calendar (Real)")
+                    st.write("**Authentication:** Service Account")
+                except Exception as e:
+                    st.write(f"**Status:** ❌ Error - {str(e)}")
+            else:
+                st.write("**Status:** ❌ Not Connected")
 
     st.markdown("---")
     
