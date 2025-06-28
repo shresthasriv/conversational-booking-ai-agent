@@ -6,7 +6,7 @@ from langchain_deepseek import ChatDeepSeek
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import create_react_agent
-from backend.services.calendar_service import GoogleCalendarService
+from backend.services.demo_calendar_service import DemoCalendarService
 from config.settings import settings
 import uuid
 import re
@@ -29,7 +29,7 @@ class LangGraphCalendarAgent:
             model=settings.DEEPSEEK_MODEL,
             base_url=settings.DEEPSEEK_BASE_URL
         )
-        self.calendar_service = GoogleCalendarService()
+        self.calendar_service = DemoCalendarService()
         self.graph = self._build_graph()
         self.session_states = {}
         self.timezone = pytz.timezone(settings.TIMEZONE)
