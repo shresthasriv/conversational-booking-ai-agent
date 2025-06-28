@@ -26,7 +26,16 @@ st.set_page_config(
 @st.cache_resource
 def get_calendar_agent():
     try:
-        return LangGraphCalendarAgent()
+        # Check for service account credentials in secrets
+        if hasattr(st, 'secrets') and 'google_credentials' in st.secrets:
+            credentials_info = dict(st.secrets['google_credentials'])
+            return LangGraphCalendarAgent(credentials_info=credentials_info)
+        # For local development
+        elif os.path.exists('credentials.json'):
+            return LangGraphCalendarAgent()
+        else:
+            st.error("⚠️ **Google Calendar Setup Required for Agent**")
+            return None
     except Exception as e:
         st.error(f"Failed to initialize calendar agent: {e}")
         return None

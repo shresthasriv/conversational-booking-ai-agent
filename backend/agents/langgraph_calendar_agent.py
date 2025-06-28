@@ -23,13 +23,13 @@ class ConversationState(TypedDict):
     error_message: Optional[str]
 
 class LangGraphCalendarAgent:
-    def __init__(self):
+    def __init__(self, credentials_info: Optional[Dict] = None):
         self.llm = ChatDeepSeek(
             api_key=settings.DEEPSEEK_API_KEY,
             model=settings.DEEPSEEK_MODEL,
             base_url=settings.DEEPSEEK_BASE_URL
         )
-        self.calendar_service = GoogleCalendarService()
+        self.calendar_service = GoogleCalendarService(credentials_info=credentials_info)
         self.graph = self._build_graph()
         self.session_states = {}
         self.timezone = pytz.timezone(settings.TIMEZONE)
