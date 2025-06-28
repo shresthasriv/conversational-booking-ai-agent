@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from backend.agents.langgraph_calendar_agent import LangGraphCalendarAgent
-    from backend.services.calendar_service import GoogleCalendarService
+    from backend.services.demo_calendar_service import DemoCalendarService
     from config.settings import settings
 except ImportError as e:
     st.error(f"Import error: {e}")
@@ -34,9 +34,9 @@ def get_calendar_agent():
 @st.cache_resource
 def get_calendar_service():
     try:
-        return GoogleCalendarService()
+        return DemoCalendarService()
     except Exception as e:
-        st.error(f"Failed to initialize calendar service: {e}")
+        st.error(f"Failed to initialize demo calendar service: {e}")
         return None
 
 def init_session_state():
@@ -89,7 +89,8 @@ def get_calendar_events(calendar_service) -> List[Dict]:
 def check_availability(date: str, calendar_service) -> List[Dict]:
     try:
         if calendar_service:
-            available_slots = calendar_service.suggest_time_slots(date, 60)
+            date_obj = datetime.strptime(date, "%Y-%m-%d")
+            available_slots = calendar_service.suggest_time_slots(date_obj, 60)
             return available_slots
         return []
     except Exception as e:
@@ -101,34 +102,35 @@ def main():
 
     st.title("📅 TailorTalk Calendar Booking Agent")
     st.markdown("### AI-powered appointment scheduling with natural language")
+    
+    # Demo mode notice
+    st.info("🎭 **Demo Mode**: This app uses a simulated calendar for demonstration purposes. All bookings are simulated.")
 
-    # Debug secrets
-    st.write("**Debug Info:**")
-    try:
-        st.write("Available secrets:", list(st.secrets.keys()) if hasattr(st, 'secrets') else "No secrets")
-        st.write("DEEPSEEK_API_KEY from secrets:", st.secrets.get("DEEPSEEK_API_KEY", "Not found") if hasattr(st, 'secrets') else "No secrets")
-        st.write("Settings DEEPSEEK_API_KEY:", settings.DEEPSEEK_API_KEY)
-        st.write("Settings GOOGLE_CREDENTIALS_FILE:", settings.GOOGLE_CREDENTIALS_FILE)
-        st.write("File exists:", os.path.exists(settings.GOOGLE_CREDENTIALS_FILE))
-    except Exception as e:
-        st.write("Debug error:", str(e))
-
-    missing_settings = settings.validate_required_settings()
-    if missing_settings:
-        st.error("⚠️ Configuration incomplete!")
-        st.markdown("**Missing settings:**")
-        for setting in missing_settings:
-            st.markdown(f"- {setting}")
-        st.markdown("Please configure your environment variables and try again.")
-        st.stop()
-
+    # Initialize services
     calendar_agent = get_calendar_agent()
     calendar_service = get_calendar_service()
     
     if not calendar_agent:
         st.error("❌ Calendar agent failed to initialize. Please check your configuration.")
+        
+        # Show debug info for troubleshooting
+        with st.expander("🔧 Debug Info"):
+            try:
+                missing_settings = settings.validate_required_settings()
+                st.write("Missing settings:", missing_settings)
+                st.write("Available secrets:", list(st.secrets.keys()) if hasattr(st, 'secrets') else "No secrets")
+                if hasattr(st, 'secrets'):
+                    st.write("DEEPSEEK_API_KEY in secrets:", "DEEPSEEK_API_KEY" in st.secrets)
+            except Exception as e:
+                st.write("Debug error:", str(e))
+        
+        st.stop()
+    
+    if not calendar_service:
+        st.error("❌ Demo calendar service failed to initialize.")
         st.stop()
 
+    # Main layout
     col1, col2 = st.columns([2, 1])
     
     with col1:
@@ -202,7 +204,7 @@ def main():
                     st.success(f"Found {len(events)} upcoming events:")
                     for event in events[:3]:
                         try:
-                            event_time = datetime.fromisoformat(event["start_time"].replace('Z', '+00:00'))
+                            event_time = datetime.fromisoformat(event["start"]["dateTime"].replace('Z', '+00:00'))
                             st.write(f"**{event['summary']}**")
                             st.write(f"📅 {event_time.strftime('%B %d, %Y at %H:%M')}")
                             st.write("---")
@@ -211,6 +213,12 @@ def main():
                             st.write("---")
                 else:
                     st.info("No upcoming events")
+        
+        # Demo stats
+        with st.expander("📈 Demo Statistics"):
+            if calendar_service:
+                stats = calendar_service.get_demo_stats()
+                st.json(stats)
 
     st.markdown("---")
     
@@ -225,19 +233,16 @@ def main():
         **Features:**
         - Natural language understanding
         - Automatic availability checking
-        - Google Calendar integration
+        - Simulated calendar integration
         - Smart time suggestions
         - Conversational booking flow
+        
+        **Demo Mode Features:**
+        - Pre-populated realistic calendar events
+        - Real-time availability checking
+        - Event creation simulation
+        - No authentication required
         """)
-    
-    with st.expander("🔧 Debug Info"):
-        st.json({
-            "session_id": st.session_state.session_id,
-            "conversation_stage": st.session_state.conversation_stage,
-            "message_count": len(st.session_state.messages),
-            "agent_status": "Connected" if calendar_agent else "Disconnected",
-            "calendar_status": "Connected" if calendar_service else "Disconnected"
-        })
 
 if __name__ == "__main__":
     main() 
