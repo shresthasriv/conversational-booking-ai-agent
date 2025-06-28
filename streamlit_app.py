@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from backend.agents.langgraph_calendar_agent import LangGraphCalendarAgent
-    from backend.services.calendar_service import GoogleCalendarService
+    from backend.services.demo_calendar_service import DemoCalendarService
     from config.settings import settings
 except ImportError as e:
     st.error(f"Import error: {e}")
@@ -26,16 +26,7 @@ st.set_page_config(
 @st.cache_resource
 def get_calendar_agent():
     try:
-        # Check for service account credentials in secrets
-        if hasattr(st, 'secrets') and 'google_credentials' in st.secrets:
-            credentials_info = dict(st.secrets['google_credentials'])
-            return LangGraphCalendarAgent(credentials_info=credentials_info)
-        # For local development
-        elif os.path.exists('credentials.json'):
-            return LangGraphCalendarAgent()
-        else:
-            st.error("⚠️ **Google Calendar Setup Required for Agent**")
-            return None
+        return LangGraphCalendarAgent()
     except Exception as e:
         st.error(f"Failed to initialize calendar agent: {e}")
         return None
@@ -43,30 +34,9 @@ def get_calendar_agent():
 @st.cache_resource
 def get_calendar_service():
     try:
-        # For Streamlit Cloud, check for service account credentials in secrets
-        if hasattr(st, 'secrets') and 'google_credentials' in st.secrets:
-            credentials_info = dict(st.secrets['google_credentials'])
-            return GoogleCalendarService(credentials_info=credentials_info)
-        # For local development, try credentials.json file
-        elif os.path.exists('credentials.json'):
-            return GoogleCalendarService()
-        else:
-            st.error("⚠️ **Google Calendar Setup Required**")
-            st.markdown("""
-            **For Streamlit Cloud:**
-            1. Add your Google service account credentials to Streamlit secrets
-            2. Go to your app settings → Secrets
-            3. Add the service account JSON data under `[google_credentials]`
-            
-            **For Local Development:**
-            - Place your `credentials.json` file in the project root
-            - This file should NOT be committed to Git
-            """)
-            return None
+        return DemoCalendarService()
     except Exception as e:
-        st.error(f"Failed to initialize Google calendar service: {e}")
-        if "service account" in str(e).lower():
-            st.error("💡 Make sure you've shared your Google Calendar with the service account email!")
+        st.error(f"Failed to initialize demo calendar service: {e}")
         return None
 
 def init_session_state():
@@ -133,8 +103,8 @@ def main():
     st.title("📅 TailorTalk Calendar Booking Agent")
     st.markdown("### AI-powered appointment scheduling with natural language")
     
-    # Google Calendar integration notice
-    st.info("🔗 **Real Google Calendar Integration**: This app connects to your actual Google Calendar using service account authentication.")
+    # Demo mode notice
+    st.info("🎭 **Demo Mode**: This app uses a simulated calendar for demonstration purposes. All bookings are simulated.")
 
     # Initialize services
     calendar_agent = get_calendar_agent()
@@ -157,7 +127,7 @@ def main():
         st.stop()
     
     if not calendar_service:
-        st.error("❌ Google calendar service failed to initialize.")
+        st.error("❌ Demo calendar service failed to initialize.")
         st.stop()
 
     # Main layout
@@ -245,17 +215,10 @@ def main():
                     st.info("No upcoming events")
         
         # Demo stats
-        with st.expander("📈 Calendar Statistics"):
+        with st.expander("📈 Demo Statistics"):
             if calendar_service:
-                try:
-                    # Get some basic calendar info instead of demo stats
-                    st.write("**Calendar Service Status:** ✅ Connected")
-                    st.write("**Service Type:** Google Calendar (Real)")
-                    st.write("**Authentication:** Service Account")
-                except Exception as e:
-                    st.write(f"**Status:** ❌ Error - {str(e)}")
-            else:
-                st.write("**Status:** ❌ Not Connected")
+                stats = calendar_service.get_demo_stats()
+                st.json(stats)
 
     st.markdown("---")
     
@@ -269,16 +232,16 @@ def main():
         
         **Features:**
         - Natural language understanding
-        - **Real Google Calendar integration** - creates actual events in your calendar!
-        - Automatic availability checking against your real calendar
-        - Smart time suggestions based on your schedule
+        - Automatic availability checking
+        - Simulated calendar integration
+        - Smart time suggestions
         - Conversational booking flow
         
-        **Google Calendar Integration:**
-        - Service account authentication (no OAuth popup needed)
+        **Demo Mode Features:**
+        - Pre-populated realistic calendar events
         - Real-time availability checking
-        - Actual event creation in your Google Calendar
-        - Secure server-to-server communication
+        - Event creation simulation
+        - No authentication required
         """)
 
 if __name__ == "__main__":

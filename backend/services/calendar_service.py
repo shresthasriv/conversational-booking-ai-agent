@@ -1,11 +1,9 @@
 import os
 import pickle
-import json
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google.oauth2.service_account import Credentials as ServiceAccountCredentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -14,47 +12,35 @@ from backend.models.schemas import TimeSlot, CalendarEvent
 import pytz
 
 class GoogleCalendarService:
-    def __init__(self, credentials_info: Optional[Dict] = None):
+    def __init__(self):
         self.service = None
         self.credentials = None
-        self.credentials_info = credentials_info
         self._authenticate()
 
     def _authenticate(self):
         creds = None
         
-        # If credentials_info is provided (Streamlit Cloud), use service account
-        if self.credentials_info:
-            try:
-                creds = ServiceAccountCredentials.from_service_account_info(
-                    self.credentials_info,
-                    scopes=settings.GOOGLE_SCOPES
-                )
-            except Exception as e:
-                raise Exception(f"Failed to authenticate with service account: {str(e)}")
-        else:
-            # Local development flow with OAuth
-            if os.path.exists(settings.GOOGLE_TOKEN_FILE):
-                creds = Credentials.from_authorized_user_file(
-                    settings.GOOGLE_TOKEN_FILE, 
+        if os.path.exists(settings.GOOGLE_TOKEN_FILE):
+            creds = Credentials.from_authorized_user_file(
+                settings.GOOGLE_TOKEN_FILE, 
+                settings.GOOGLE_SCOPES
+            )
+        
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                if not os.path.exists(settings.GOOGLE_CREDENTIALS_FILE):
+                    raise FileNotFoundError(f"Google credentials file not found: {settings.GOOGLE_CREDENTIALS_FILE}")
+                
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    settings.GOOGLE_CREDENTIALS_FILE, 
                     settings.GOOGLE_SCOPES
                 )
+                creds = flow.run_local_server(port=0)
             
-            if not creds or not creds.valid:
-                if creds and creds.expired and creds.refresh_token:
-                    creds.refresh(Request())
-                else:
-                    if not os.path.exists(settings.GOOGLE_CREDENTIALS_FILE):
-                        raise FileNotFoundError(f"Google credentials file not found: {settings.GOOGLE_CREDENTIALS_FILE}")
-                    
-                    flow = InstalledAppFlow.from_client_secrets_file(
-                        settings.GOOGLE_CREDENTIALS_FILE, 
-                        settings.GOOGLE_SCOPES
-                    )
-                    creds = flow.run_local_server(port=0)
-                
-                with open(settings.GOOGLE_TOKEN_FILE, 'w') as token:
-                    token.write(creds.to_json())
+            with open(settings.GOOGLE_TOKEN_FILE, 'w') as token:
+                token.write(creds.to_json())
         
         try:
             self.service = build('calendar', 'v3', credentials=creds)

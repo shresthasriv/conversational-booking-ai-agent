@@ -6,7 +6,7 @@ from langchain_deepseek import ChatDeepSeek
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import create_react_agent
-from backend.services.calendar_service import GoogleCalendarService
+from backend.services.demo_calendar_service import DemoCalendarService
 from config.settings import settings
 import uuid
 import re
@@ -23,13 +23,13 @@ class ConversationState(TypedDict):
     error_message: Optional[str]
 
 class LangGraphCalendarAgent:
-    def __init__(self, credentials_info: Optional[Dict] = None):
+    def __init__(self):
         self.llm = ChatDeepSeek(
             api_key=settings.DEEPSEEK_API_KEY,
             model=settings.DEEPSEEK_MODEL,
             base_url=settings.DEEPSEEK_BASE_URL
         )
-        self.calendar_service = GoogleCalendarService(credentials_info=credentials_info)
+        self.calendar_service = DemoCalendarService()
         self.graph = self._build_graph()
         self.session_states = {}
         self.timezone = pytz.timezone(settings.TIMEZONE)
